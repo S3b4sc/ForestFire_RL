@@ -2,6 +2,7 @@ from environment import FirePropagationEnv
 from stable_baselines3 import PPO
 import numpy as np
 from utils import squareAnimationPlot
+from utils import parameters
 
 # Testing environment with render 
 class TestForestFireEnv(FirePropagationEnv):
@@ -43,14 +44,5 @@ class TestForestFireEnv(FirePropagationEnv):
         print('Done.')
             
 if __name__ == "__main__":
-    shape = 50
-    parameters = {
-    'neighbours': [(-1,0),(1,0),(0,1),(0,-1)],
-    'neighboursBoolTensor': np.ones((4,shape,shape), dtype=bool),
-    'grid_size':shape,
-    'threshold':0.55,
-    'max_steps': 70,
-    'extinguish_limit':1
-    }
     TestFire = TestForestFireEnv(**parameters)
     TestFire.episode()

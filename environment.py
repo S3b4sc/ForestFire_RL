@@ -5,6 +5,8 @@ import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 
+from utils import parameters
+
 class FirePropagationEnv(gym.Env):
     """
     
@@ -25,13 +27,14 @@ class FirePropagationEnv(gym.Env):
         self.extinguish_limit = extinguish_limit
 
         # Action space: extinguish cells (limited per step)
-        self.action_space = spaces.MultiDiscrete([grid_size, grid_size] * self.extinguish_limit)
+        self.action_space = spaces.Discrete(self.grid_size*self.grid_size)
+        #self.action_space = spaces.MultiDiscrete([self.grid_size,self.grid_size] * self.extinguish_limit)
+        #print(self.action_space.sample())
         # Historical actions record
         self.historical_actions = []
         #print(self.action_space.sample())
         # Observation space: forest of cell states (0=empty, 1=healthy, 2=burning, 3=burned)
         self.observation_space = spaces.Box(low=0, high=3, shape=(grid_size, grid_size), dtype=np.int32)
-
         # Initialize environment
         self.reset()
 
@@ -44,7 +47,7 @@ class FirePropagationEnv(gym.Env):
         Returns:
             observation (np.ndarray): The initial observation of the environment.
         '''
-        
+        super().reset(seed=seed)
         # Create initial forest: majority healthy, one burning
         self.forest = np.ones((self.grid_size, self.grid_size), dtype=np.int32)
         #self.forest[np.random.randint(self.grid_size), np.random.randint(self.grid_size)] = 2
@@ -59,14 +62,17 @@ class FirePropagationEnv(gym.Env):
         #if self.steps > 3:
         
         # Extract tuples from action (tuples are hashable into sets)
-        agent_actions = [(actions[i], actions[i+1]) for i in range(0,len(actions),2) ]
+        #agent_actions = [(actions[i], actions[i+1]) for i in range(0,len(actions),2) ]
         # Ensure uniqueness and within bounds
-        cells = set(agent_actions) # Use a set to ensure uniqueness
-        cells = {c for c in cells if (0 <= c[0] < self.grid_size) and (0 <= c[1] < self.grid_size)}  # Filter invalid cells
+        #cells = set(agent_actions) # Use a set to ensure uniqueness
+        #cells = {c for c in cells if (0 <= c[0] < self.grid_size) and (0 <= c[1] < self.grid_size)}  # Filter invalid cells
         # Turn off the fire or create vacancies in the valid cells 
-        for x, y in cells:
-            self.forest[x, y] = 0 # Extinguish cells
-            self.historical_actions.append((x,y))   # Save the record
+        #for x, y in cells:
+        #    self.forest[x, y] = 0 # Extinguish cells
+        #    self.historical_actions.append((x,y))   # Save the record
+        x,y = divmod(actions,self.grid_size)
+        #print(actions)
+        self.forest[x,y] = 0
         
         # Run one time step after agent's action (Update environment)
         
@@ -92,7 +98,7 @@ class FirePropagationEnv(gym.Env):
 
         # Stablish reward criteria
         # Penalize repeated actions
-        repeated = np.sum([True for pair in cells if (pair in self.historical_actions)])
+        #repeated = np.sum([True for pair in cells if (pair in self.historical_actions)])
         # Penalize burned trees
         burned = np.sum(self.forest == 3)
         # Penalize propagation speed
@@ -103,14 +109,16 @@ class FirePropagationEnv(gym.Env):
             
         # Calculate reward  
         #print(propagation_speed)
-        reward = propagation_speed - 50*repeated
+        
 
         # Check if terminated
         self.steps += 1
         #print(self.steps)
         #terminated = ( (self.steps >= self.max_steps) or (np.sum(self.forest == 2) == 0) )
-        terminated = np.sum(self.forest == 2) == 0
+        terminated = (np.sum(self.forest == 2) == 0)
         truncated = False
+        #reward = (-burned + 10*propagation_speed) #if terminated else 0
+        reward = np.sum(self.forest == 0) - 0.2*np.sum(self.forest == 3)
     
         return self.forest, reward, terminated, truncated, {}
 
@@ -146,21 +154,8 @@ class FirePropagationEnv(gym.Env):
 
 if __name__ == "__main__":
     # Set Up the PPO Agent
-
-
-                # Create the environment
-    shape = 50
-    # for regular squeared lattice             
-    parameters = {
-        'neighbours': [(-1,0),(1,0),(0,1),(0,-1)],
-        'neighboursBoolTensor': np.ones((4,shape,shape), dtype=bool),
-        'grid_size':shape,
-        'threshold':0.55,
-        'max_steps': 120,
-        'extinguish_limit':1
-    }
-
-    #env = FirePropagationEnv(**parameters)
+    
+    # Create the environment
 
     # Wrap the environment for vectorized training
     def make_env():
@@ -170,7 +165,6 @@ if __name__ == "__main__":
         return FirePropagationEnv(**parameters)
 
     vec_env = make_vec_env(make_env, n_envs=4)
-
 
     # Create the PPO agent
     model = PPO("MlpPolicy", vec_env, verbose=1, ent_coef=0.05, learning_rate=3e-4, clip_range=0.2)

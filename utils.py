@@ -1,11 +1,10 @@
-#from matplotlib.collections import PolyCollection
 from matplotlib.colors import ListedColormap
-#from matplotlib import colors as mcolors
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
-#import numpy as np
+import numpy as np
 
 
+# Functions for animations
 colors = ['white', 'green', 'red', 'black']
 ticksLabels = ['No tree', 'Healthy tree', 'Burning tree', 'Burned tree']
 customCmap = ListedColormap(colors)
@@ -32,3 +31,13 @@ def squareAnimationPlot(filename:str, historical:list, interval:int, p_bond, p_s
     )
     # Mostrar la animación
     squareAni.save(filename + ".gif", writer="pillow")
+    
+# Parameters for training and testing PPO agent
+parameters = {
+'neighbours': [(-1,0),(1,0),(0,1),(0,-1)],
+'neighboursBoolTensor': np.ones((4,10,10), dtype=bool),
+'grid_size':10,
+'threshold':0.55,
+'max_steps': 70,
+'extinguish_limit':1
+}
