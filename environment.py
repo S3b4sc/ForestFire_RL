@@ -70,13 +70,13 @@ class FirePropagationEnv(gym.Env):
         #for x, y in cells:
         #    self.forest[x, y] = 0 # Extinguish cells
         #    self.historical_actions.append((x,y))   # Save the record
+        vaccancy_old = np.sum(self.forest == 0)
         x,y = divmod(actions,self.grid_size)
         #print(actions)
         self.forest[x,y] = 0
+        vaccancy_new = np.sum(self.forest == 0)
         
         # Run one time step after agent's action (Update environment)
-        
-
         neighboursTensor = self.createNeighbourTensor()
         couldPropagate = (neighboursTensor == 2)
         amountOfBurningNeighbours = np.sum(couldPropagate, axis=0)
@@ -102,10 +102,8 @@ class FirePropagationEnv(gym.Env):
         # Penalize burned trees
         burned = np.sum(self.forest == 3)
         # Penalize propagation speed
-        if new_bunrning == 0:
-            propagation_speed = self.grid_size * self.grid_size
-        else:
-            propagation_speed = old_burning - new_bunrning            
+        
+        propagation_relation = (old_burning - new_bunrning)/(old_burning + 1) 
             
         # Calculate reward  
         #print(propagation_speed)
@@ -116,9 +114,14 @@ class FirePropagationEnv(gym.Env):
         #print(self.steps)
         #terminated = ( (self.steps >= self.max_steps) or (np.sum(self.forest == 2) == 0) )
         terminated = (np.sum(self.forest == 2) == 0)
+        if terminated:
+            burned_cells = np.sum(self.forest == 3)/(self.grid_size*self.grid_size)
+        else:
+            burned_cells = 0
         truncated = False
         #reward = (-burned + 10*propagation_speed) #if terminated else 0
-        reward = np.sum(self.forest == 0) - 0.2*np.sum(self.forest == 3)
+        
+        reward = np.sum(self.forest == 0)/self.steps - burned_cells #+ propagation_relation
     
         return self.forest, reward, terminated, truncated, {}
 
@@ -170,7 +173,7 @@ if __name__ == "__main__":
     model = PPO("MlpPolicy", vec_env, verbose=1, ent_coef=0.05, learning_rate=3e-4, clip_range=0.2)
 
     # Train the agent
-    model.learn(total_timesteps=200000,log_interval=1)
+    model.learn(total_timesteps=300000,log_interval=1)
 
     # Save the trained model
     model.save("./ppo_fire_agent")
