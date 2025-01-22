@@ -173,7 +173,7 @@ if __name__ == "__main__":
     model = PPO("MlpPolicy", vec_env, verbose=1, ent_coef=0.05, learning_rate=3e-4, clip_range=0.2)
 
     # Train the agent
-    model.learn(total_timesteps=300000,log_interval=1)
+    model.learn(total_timesteps=5000000,log_interval=1)
 
     # Save the trained model
     model.save("./ppo_fire_agent")
