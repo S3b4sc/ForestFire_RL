@@ -15,8 +15,10 @@ class TestForestFireEnv(FirePropagationEnv):
     def episode(self):
         
         # Load the model
-        model = PPO.load("ppo_fire_agent")
-        observation,_ = self.reset()
+        model = PPO.load("cnn_ppo_fire_agent")
+        observation, info = self.reset()
+        
+        self.historicalSteps.append(np.copy(info['initial_forest']))
         done = False
         
         while not done:
@@ -28,7 +30,7 @@ class TestForestFireEnv(FirePropagationEnv):
             observation, reward, done, truncated, info = self.step(actions=actions)
             
             # Save the step 
-            self.historicalSteps.append(np.copy(observation))
+            self.historicalSteps.append(np.copy(info['forest']))
             #print(observation)
             
         # render animation
