@@ -36,6 +36,7 @@ class FirePropagationEnv(gym.Env):
         #print(self.action_space.sample())
         # Observation space: forest of cell states (0, 1=healthy, 2=burning, 3=burned, 4=empty)
         self.observation_space = spaces.Box(low=0, high=4, shape=(4,grid_size, grid_size), dtype=np.int32)
+        self.i = 0
         # Initialize environment
         self.reset()
 
@@ -54,8 +55,10 @@ class FirePropagationEnv(gym.Env):
         #self.forest[np.random.randint(self.grid_size), np.random.randint(self.grid_size)] = 2
         # Start initial fire in the center of the lattice
         self.forest[self.grid_size//2,  self.grid_size//2] = 2
+        self.forest[self.grid_size//2,  self.grid_size//2 + 1] = 2
         
         self.steps = 0
+        self.i = 0
         self.historical_actions = []
         
         observation = self._to_image_like(matrix=self.forest)
@@ -81,6 +84,7 @@ class FirePropagationEnv(gym.Env):
         #    self.historical_actions.append((x,y))   # Save the record
         vaccancy_old = np.sum(self.forest == 4)
         x,y = divmod(actions,self.grid_size)
+        self.historical_actions.append(actions)
         #print(actions)
         self.forest[x,y] = 4
         vaccancy_new = np.sum(self.forest == 4)
@@ -117,7 +121,13 @@ class FirePropagationEnv(gym.Env):
         # Calculate reward  
         #print(propagation_speed)
         
-
+        vac_step_diff = 1 if ((np.sum(self.forest == 4) + self.i-1) == self.steps) else 0.8
+        #print(vac_step_diff)
+        
+        
+        if vac_step_diff < 0:
+            self.i+=1
+        
         # Check if terminated
         self.steps += 1
         #print(self.steps)
@@ -130,8 +140,10 @@ class FirePropagationEnv(gym.Env):
         truncated = False
         #reward = (-burned + 10*propagation_speed) #if terminated else 0
         
-        reward = 1.2*np.sum(self.forest == 4)/self.steps - burned_cells #+ propagation_relation
+        reward = - burned_cells #+ propagation_relation
         
+            
+            
         observation = self._to_image_like(matrix=self.forest)
         
         info = {
@@ -190,7 +202,7 @@ if __name__ == "__main__":
     # Define the Policy with custom feature extractor
     policy_kwargs = dict(
         features_extractor_class = CustomCNNFeaturExtractor,
-        features_extractor_kwargs = dict(features_dim=256)
+        features_extractor_kwargs = dict(features_dim=100)
     )
 
     # Wrap the environment for vectorized training
@@ -207,7 +219,7 @@ if __name__ == "__main__":
     model = PPO("CnnPolicy", vec_env, policy_kwargs=policy_kwargs,verbose=1)
 
     # Train the agent
-    model.learn(total_timesteps=150000,log_interval=1)
+    model.learn(total_timesteps=1500000,log_interval=1)
 
     # Save the trained model
     model.save("./cnn_ppo_fire_agent")
