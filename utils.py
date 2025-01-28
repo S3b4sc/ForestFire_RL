@@ -10,7 +10,7 @@ import numpy as np
 
 # Important settings variables for the animation aesthetics
 colors = ['green', 'red', 'black', 'white']
-ticksLabels = ['Healthy tree', 'Burning tree', 'Burned tree', 'No tree Agent']
+ticksLabels = ['Healthy tree', 'Burning tree', 'Burned tree', 'Vacant Agent']
 customCmap = ListedColormap(colors)
 ticksLocation = [0.375, 1.125, 1.875, 2.625]
 
