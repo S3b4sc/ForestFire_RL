@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-# Important settings variables for the animation aesthetics
+# Important setting variables for the animation aesthetics
 colors = ['green', 'red', 'black', 'white']
 ticksLabels = ['Healthy tree', 'Burning tree', 'Burned tree', 'Vacant Agent']
 customCmap = ListedColormap(colors)
@@ -60,7 +60,7 @@ def squareAnimationPlot(filename:str, historical:List[List[int]], interval:int, 
         fig, update, frames=len(historical), interval=interval, blit=True)
     
     # Save the animation as a GIF file
-    squareAni.save(filename + ".gif", writer="pillow")
+    squareAni.save('gifs/' + filename + ".gif", writer="pillow")
     
 # Parameters for training and testing PPO agent
 parameters = {
@@ -68,6 +68,5 @@ parameters = {
 'neighboursBoolTensor': np.ones((4,15,15), dtype=bool),
 'grid_size':15,
 'threshold':0.55,
-'max_steps': 70,
-'extinguish_limit':1
+'intial_iters': 3
 }

@@ -29,8 +29,7 @@ class FirePropagationEnv(gym.Env):
                  neighboursBoolTensor:np.ndarray,
                  grid_size:int,
                  threshold:float,
-                 max_steps:int,
-                 extinguish_limit:int):
+                 intial_iters:int):
         """
         Initialize the fire propagation environment.
         
@@ -39,8 +38,8 @@ class FirePropagationEnv(gym.Env):
             neighboursBoolTensor (np.ndarray): A tensor representing the neighborhood connectivity for the grid.
             grid_size (int): The size of the grid (forest). It's a square grid of shape (grid_size, grid_size).
             threshold (float): The burning threshold, which dictates how susceptible cells are to catching fire.
-            max_steps (int): The maximum number of simulation steps before the episode ends.
-            extinguish_limit (int): The maximum number of cells that can be extinguished in one step.
+            initial_iters (int): The initial number of iterations before the agent can take action.
+            
 
         Returns:
             None
@@ -55,10 +54,8 @@ class FirePropagationEnv(gym.Env):
         self.grid_size = grid_size
         # Burning threshold
         self.threshold = threshold
-        # Max time steps
-        self.max_steps = max_steps
-        self.extinguish_limit = extinguish_limit
-
+        # inital iterations
+        self.intial_iters = intial_iters
         # Action space: extinguish cells (limited per step)
         self.action_space = spaces.Discrete(self.grid_size*self.grid_size)
         # Historical actions record
@@ -79,12 +76,14 @@ class FirePropagationEnv(gym.Env):
         super().reset(seed=seed)
         # Create initial forest: majority healthy, one burning
         self.forest = np.ones((self.grid_size, self.grid_size), dtype=np.int32)
-        
         # Start initial fire in the center of the lattice
         self.forest[self.grid_size//2,  self.grid_size//2] = 2
         self.forest[self.grid_size//2,  self.grid_size//2 + 1] = 2
         
+        # Propagate few initial steps if desired
         self.steps = 0
+        self._propagate_fire(iters=self.intial_iters)
+
         self.historical_actions = []
         
         observation = self._to_image_like(matrix=self.forest)
@@ -112,36 +111,14 @@ class FirePropagationEnv(gym.Env):
         
         # The action represents an index of the grid, calculate its 2D coordinates
         x,y = divmod(actions,self.grid_size)
-        
         # Apply extinguish action (mark the selected cell as empty)
         self.forest[x,y] = 4
-        
-        # Run one time step after agent's action (Update environment)
-        neighboursTensor = self.createNeighbourTensor()
-        # Find those current burning trees
-        couldPropagate = (neighboursTensor == 2)
-        # Number of burning neighbours
-        amountOfBurningNeighbours = np.sum(couldPropagate, axis=0)
-        # Filter those cells wiht burning neighbours
-        cellsToEvaluate = amountOfBurningNeighbours > 0
-        # Boleand mask of burning trees
-        burningTrees = (self.forest == 2)
-        # Generate probality propagation matrix
-        probabilityMatrixForest = np.random.rand(*self.forest.shape)
-        probabilityMatrixForest[cellsToEvaluate] = 1. - (1. - probabilityMatrixForest[cellsToEvaluate]) ** (1/amountOfBurningNeighbours[cellsToEvaluate])
-        
-        # Find cells that could burn
-        couldBurn = (probabilityMatrixForest <= self.threshold)
-        # Find new burning trees
-        newBurningTrees = (self.forest == 1) & couldBurn & np.logical_or.reduce(couldPropagate,axis=0)
-        
-        # Update forest matrix for the next step
-        self.forest[burningTrees] = 3
-        self.forest[newBurningTrees] = 2
 
+        # Run one time step after agent's action (Update environment)
+        self._propagate_fire()
+                
         # Stablish reward criteria
         # Check if the episode is terminated
-        self.steps += 1
         terminated = (np.sum(self.forest == 2) == 0)
         
         if terminated:
@@ -161,6 +138,44 @@ class FirePropagationEnv(gym.Env):
     
         return observation, reward, terminated, truncated, info
 
+    # Method for fire spread
+    @final
+    def _propagate_fire(self,iters:int=1) -> None:
+        """
+        Propagate fire given some time steps
+        
+        Args:
+            inters: number of times steps the fire propagates
+        
+        Returns:
+            None
+        """
+        for i in range(iters):
+            neighboursTensor = self.createNeighbourTensor()
+            # Find those current burning trees
+            couldPropagate = (neighboursTensor == 2)
+            # Number of burning neighbours
+            amountOfBurningNeighbours = np.sum(couldPropagate, axis=0)
+            # Filter those cells wiht burning neighbours
+            cellsToEvaluate = amountOfBurningNeighbours > 0
+            # Boleand mask of burning trees
+            burningTrees = (self.forest == 2)
+            # Generate probality propagation matrix
+            probabilityMatrixForest = np.random.rand(*self.forest.shape)
+            probabilityMatrixForest[cellsToEvaluate] = 1. - (1. - probabilityMatrixForest[cellsToEvaluate]) ** (1/amountOfBurningNeighbours[cellsToEvaluate])
+            # Find cells that could burn
+            couldBurn = (probabilityMatrixForest <= self.threshold)
+            # Find new burning trees
+            newBurningTrees = (self.forest == 1) & couldBurn & np.logical_or.reduce(couldPropagate,axis=0)
+
+            # Update forest matrix for the next step
+            self.forest[burningTrees] = 3
+            self.forest[newBurningTrees] = 2
+
+            # Update steps count
+            self.steps += 1
+        
+        
     # Method necessary for step method propagating time
     @final
     def createNeighbourTensor(self) -> np.ndarray:
