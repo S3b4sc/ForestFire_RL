@@ -24,7 +24,8 @@ class TestForestFireEnv(FirePropagationEnv):
                  neighbours:List[Tuple[int,int]],
                  neighboursBoolTensor:np.ndarray,
                  grid_size:int, threshold:float,
-                 initial_iters:int) -> None:
+                 initial_iters:int,
+                 pre_defined_actions:bool) -> None:
         """
         Initializes the test environment by inheriting attributes from the parent class and 
         setting up storage for historical data.
@@ -36,9 +37,10 @@ class TestForestFireEnv(FirePropagationEnv):
             threshold (float): Probability threshold for fire propagation.
             max_steps (int): Maximum number of steps in the simulation.
             extinguish_limit (int): Maximum number of extinguished cells allowed.
+            pre_defined_actions (bool): Whether the model will use predefined actions or not.
         """
         # Initialize parent class
-        super().__init__(neighbours,neighboursBoolTensor, grid_size, threshold, initial_iters)
+        super().__init__(neighbours,neighboursBoolTensor, grid_size, threshold, initial_iters, pre_defined_actions)
         self.historicalSteps = []
     
     # Save historical animation data to render

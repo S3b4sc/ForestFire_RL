@@ -30,7 +30,8 @@ class FirePropagationEnv(gym.Env):
                  neighboursBoolTensor:np.ndarray,
                  grid_size:int,
                  threshold:float,
-                 initial_iters:int):
+                 initial_iters:int,
+                 pre_defined_actions:bool):
         """
         Initialize the fire propagation environment.
         
@@ -40,6 +41,7 @@ class FirePropagationEnv(gym.Env):
             grid_size (int): The size of the grid (forest). It's a square grid of shape (grid_size, grid_size).
             threshold (float): The burning threshold, which dictates how susceptible cells are to catching fire.
             initial_iters (int): The initial number of iterations before the agent can take action.
+            pre_defined_actions (bool): Whether the model will use predefined actions or not.
             
 
         Returns:
@@ -57,8 +59,17 @@ class FirePropagationEnv(gym.Env):
         self.threshold = threshold
         # inital iterations
         self.initial_iters = initial_iters
-        # Action space: extinguish cells (limited per step)
-        self.action_space = spaces.Discrete(self.grid_size*self.grid_size)
+        
+        self.pre_defined_actions = pre_defined_actions
+        # Action space
+        if self.pre_defined_actions:
+            # Extinguish cells on predefined structures
+            self.action_space = spaces.MultiDiscrete(np.array([4,self.grid_size-2,self.grid_size-2]), dtype=np.int32)
+        else: 
+            # Extinguish cells (limited per step)
+            #self.action_space = spaces.Discrete(self.grid_size*self.grid_size)
+            self.action_space = spaces.MultiDiscrete(np.array([self.grid_size,self.grid_size]), dtype=np.int32)
+            
         # Historical actions record
         self.historical_actions = []
         # Observation space: forest of cell states (0, 1=healthy, 2=burning, 3=burned, 4=empty)
@@ -109,11 +120,22 @@ class FirePropagationEnv(gym.Env):
             truncated (bool): Whether the episode was truncated due to exceeding the max steps.
             info (dict): Additional information, such as the current fire state.
         """
-        
-        # The action represents an index of the grid, calculate its 2D coordinates
-        x,y = divmod(actions,self.grid_size)
-        # Apply extinguish action (mark the selected cell as empty)
-        self.forest[x,y] = 4
+        if self.pre_defined_actions:
+            # The action is mapped to a option on desired position
+            shape, x, y = actions  # Extract action components
+    
+            x += 1      # Prevent out of bound shapes
+            y += 1
+
+            # Apply the action (turn off cells)
+            self.apply_shape(shape, x, y)
+
+        else: 
+            # The action represents an index of the grid, calculate its 2D coordinates
+            x,y = actions
+            #x,y = divmod(actions,self.grid_size)
+            # Apply extinguish action (mark the selected cell as empty)
+            self.forest[x,y] = 4
 
         # Run one time step after agent's action (Update environment)
         self._propagate_fire()
@@ -139,6 +161,30 @@ class FirePropagationEnv(gym.Env):
     
         return observation, reward, terminated, truncated, info
 
+    # Method for executing pre defined action
+    def apply_shape(self,shape:int, x:int, y:int):
+        
+        # Vertical line
+        if shape == 0:
+            self.forest[x,y] = 4
+            self.forest[x+1,y] = 4
+            self.forest[x-1,y] = 4
+        # Horizontal
+        elif shape == 1:
+            self.forest[x,y] = 4
+            self.forest[x,y+1] = 4
+            self.forest[x,y-1] = 4
+        #Diagonal right
+        elif shape == 2:
+            self.forest[x,y] = 4
+            self.forest[x-1,y+1] = 4
+            self.forest[x+1,y-1] = 4
+        # Diagonal left
+        elif shape == 3:
+            self.forest[x,y] = 4
+            self.forest[x-1,y-1] = 4
+            self.forest[x+1,y+1] = 4
+    
     # Method for fire spread
     @final
     def _propagate_fire(self,iters:int=1) -> None:
@@ -151,7 +197,9 @@ class FirePropagationEnv(gym.Env):
         Returns:
             None
         """
-        for i in range(iters):
+        i = 1
+        
+        while (0<i<=iters):
             neighboursTensor = self.createNeighbourTensor()
             # Find those current burning trees
             couldPropagate = (neighboursTensor == 2)
@@ -175,6 +223,7 @@ class FirePropagationEnv(gym.Env):
 
             # Update steps count
             self.steps += 1
+            i += 1
         
         
     # Method necessary for step method propagating time
@@ -286,15 +335,15 @@ if __name__ == "__main__":
                 vec_env,
                 policy_kwargs=policy_kwargs,
                 verbose=1,
-                learning_rate=3e-4,
-                clip_range=0.1,
-                ent_coef=0.02)
+                learning_rate=3e-4,     # Increase to avoid local minumums
+                clip_range=0.1,     # Reduce for larger updates
+                ent_coef=0.02)      # Increase for encouraging exploration - reducing exploitation
 
     # Ceate the personalized callback
     callback = SaveTrainingLogCallback(log_dir="./logs/")
     
     # Train the agent
-    model.learn(total_timesteps=3000000,log_interval=1, callback=callback)
+    model.learn(total_timesteps=10000,log_interval=1, callback=callback)
     
     # Save the trained model
     model.save("./models/cnn_ppo_fire_agent_20")
