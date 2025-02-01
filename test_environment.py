@@ -24,8 +24,7 @@ class TestForestFireEnv(FirePropagationEnv):
                  neighbours:List[Tuple[int,int]],
                  neighboursBoolTensor:np.ndarray,
                  grid_size:int, threshold:float,
-                 max_steps:float,
-                 extinguish_limit:float) -> None:
+                 initial_iters:int) -> None:
         """
         Initializes the test environment by inheriting attributes from the parent class and 
         setting up storage for historical data.
@@ -39,7 +38,7 @@ class TestForestFireEnv(FirePropagationEnv):
             extinguish_limit (int): Maximum number of extinguished cells allowed.
         """
         # Initialize parent class
-        super().__init__(neighbours,neighboursBoolTensor, grid_size, threshold, max_steps, extinguish_limit)
+        super().__init__(neighbours,neighboursBoolTensor, grid_size, threshold, initial_iters)
         self.historicalSteps = []
     
     # Save historical animation data to render
@@ -55,7 +54,7 @@ class TestForestFireEnv(FirePropagationEnv):
         - Renders the animation of the simulation.
         """
         # Load the PPO model
-        model = PPO.load("cnn_ppo_fire_agent")
+        model = PPO.load("./models/cnn_ppo_fire_agent_20")
         observation, info = self.reset()
         
         # Save the initial state

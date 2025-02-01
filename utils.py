@@ -65,8 +65,8 @@ def squareAnimationPlot(filename:str, historical:List[List[int]], interval:int, 
 # Parameters for training and testing PPO agent
 parameters = {
 'neighbours': [(-1,0),(1,0),(0,1),(0,-1)],
-'neighboursBoolTensor': np.ones((4,15,15), dtype=bool),
-'grid_size':15,
+'neighboursBoolTensor': np.ones((4,20,20), dtype=bool),
+'grid_size':20,
 'threshold':0.55,
-'intial_iters': 3
+'initial_iters': 2
 }

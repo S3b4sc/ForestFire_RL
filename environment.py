@@ -11,6 +11,7 @@ from stable_baselines3.common.env_util import make_vec_env
 # Local application
 from utils import parameters
 from feature_extraction import CustomCNNFeaturExtractor
+from callback import SaveTrainingLogCallback
 
 
 class FirePropagationEnv(gym.Env):
@@ -29,7 +30,7 @@ class FirePropagationEnv(gym.Env):
                  neighboursBoolTensor:np.ndarray,
                  grid_size:int,
                  threshold:float,
-                 intial_iters:int):
+                 initial_iters:int):
         """
         Initialize the fire propagation environment.
         
@@ -55,7 +56,7 @@ class FirePropagationEnv(gym.Env):
         # Burning threshold
         self.threshold = threshold
         # inital iterations
-        self.intial_iters = intial_iters
+        self.initial_iters = initial_iters
         # Action space: extinguish cells (limited per step)
         self.action_space = spaces.Discrete(self.grid_size*self.grid_size)
         # Historical actions record
@@ -82,7 +83,7 @@ class FirePropagationEnv(gym.Env):
         
         # Propagate few initial steps if desired
         self.steps = 0
-        self._propagate_fire(iters=self.intial_iters)
+        self._propagate_fire(iters=self.initial_iters)
 
         self.historical_actions = []
         
@@ -281,10 +282,19 @@ if __name__ == "__main__":
     vec_env = make_vec_env(lambda: FirePropagationEnv(**parameters), n_envs =4)
 
     # Create the PPO agent
-    model = PPO("CnnPolicy", vec_env, policy_kwargs=policy_kwargs,verbose=1)
+    model = PPO("CnnPolicy",
+                vec_env,
+                policy_kwargs=policy_kwargs,
+                verbose=1,
+                learning_rate=3e-4,
+                clip_range=0.1,
+                ent_coef=0.02)
 
+    # Ceate the personalized callback
+    callback = SaveTrainingLogCallback(log_dir="./logs/")
+    
     # Train the agent
-    model.learn(total_timesteps=1500000,log_interval=1)
-
+    model.learn(total_timesteps=3000000,log_interval=1, callback=callback)
+    
     # Save the trained model
-    model.save("./cnn_ppo_fire_agent")
+    model.save("./models/cnn_ppo_fire_agent_20")
