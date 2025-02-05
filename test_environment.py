@@ -76,7 +76,7 @@ class TestForestFireEnv(FirePropagationEnv):
         # Render the animation after the episode ends
         self.render()
         
-    def render(self, fileName:str='animation', interval:int=100) -> None:
+    def render(self, fileName:str='animation_expo_9', interval:int=100) -> None:
         """
         Renders an animation of the forest fire simulation.
 

@@ -67,8 +67,8 @@ class FirePropagationEnv(gym.Env):
             self.action_space = spaces.MultiDiscrete(np.array([4,self.grid_size-2,self.grid_size-2]), dtype=np.int32)
         else: 
             # Extinguish cells (limited per step)
-            #self.action_space = spaces.Discrete(self.grid_size*self.grid_size)
-            self.action_space = spaces.MultiDiscrete(np.array([self.grid_size,self.grid_size]), dtype=np.int32)
+            self.action_space = spaces.Discrete(self.grid_size*self.grid_size)
+            #self.action_space = spaces.MultiDiscrete(np.array([self.grid_size,self.grid_size]), dtype=np.int32)
             
         # Historical actions record
         self.historical_actions = []
@@ -132,8 +132,8 @@ class FirePropagationEnv(gym.Env):
 
         else: 
             # The action represents an index of the grid, calculate its 2D coordinates
-            x,y = actions
-            #x,y = divmod(actions,self.grid_size)
+            #x,y = actions
+            x,y = divmod(actions,self.grid_size)
             # Apply extinguish action (mark the selected cell as empty)
             self.forest[x,y] = 4
 
@@ -343,7 +343,7 @@ if __name__ == "__main__":
     callback = SaveTrainingLogCallback(log_dir="./logs/")
     
     # Train the agent
-    model.learn(total_timesteps=10000,log_interval=1, callback=callback)
+    model.learn(total_timesteps=4000000,log_interval=1, callback=callback)
     
     # Save the trained model
-    model.save("./models/cnn_ppo_fire_agent_20")
+    model.save("./models/cnn_ppo_fire_agent_20_2")

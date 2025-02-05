@@ -1,18 +1,21 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Load logged data
 df = pd.read_csv("logs/training_log_20.csv")
 
 # Plot Episode Reward Curve
+reward = df['EpisodeReward'].rolling(window=100).mean()
+
 plt.figure(figsize=(10, 5))
-plt.plot(df["Timesteps"], df["EpisodeReward"], label="Episode Reward", color='blue')
-plt.xlabel("Timesteps")
-plt.ylabel("Episode Reward")
-plt.title("PPO Learning Curve")
+plt.plot(np.arange(0,len(reward),1), reward, label="Average Episode Reward", color='blue')
+plt.ylabel("Average Episode Reward")
+plt.title("PPO Learning Curve (Average every 100 episodes)")
+plt.ylim(-1,0.1)
 plt.legend()
 plt.savefig('./training_graphs/Learning_curve.png')
-
+ 
 # Plot Losses
 plt.figure(figsize=(10, 5))
 plt.plot(df["Timesteps"], df["PolicyLoss"], label="Policy Loss", color='red')
