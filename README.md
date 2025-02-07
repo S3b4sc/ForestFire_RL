@@ -66,14 +66,17 @@ The project demonstrates how deep learning and RL can be applied to dynamic, com
 
 ## 🚧 Usage
 
-*This section is under construction.*
+*environment.py* This code should be ran to start the agent training and specify the total time  steps for constructing the policy, the parameters for its training can be modified on *utils.py* whre you can modify the grid size, p_bond, and if to use defined structues as agent's actions or simply use one vacancy per time step.
 
----
+*test_environment.py* this screip is used for runing a test using the trained model, ir generated a gif animation that can be found on gifs diretory,  you can modify the name of the model to load for this purpose.
+
+*test_plots.py* after training a agent, some trainnig information is saved on the log directory, this training parameters can be plotted running this script.
+
 
 ## 🤝 Contributors
 
 - **Sebastian Carrillo Mejia** ([@S3b4sc](https://github.com/S3b4sc))
-- **Santiago Ramirez Gaviria** ([@partnerusername](https://github.com/partnerusername))
+- **Santiago Ramirez Gaviria** ([@santiago-Ramirez3](https://github.com/santiagoRamirez3))
 
 ---
 
